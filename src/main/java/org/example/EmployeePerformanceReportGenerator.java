@@ -1,5 +1,6 @@
 package org.example;
 
+import com.itextpdf.io.font.FontProgram;
 import com.itextpdf.io.font.FontProgramFactory;
 import com.itextpdf.io.font.PdfEncodings;
 import com.itextpdf.kernel.colors.ColorConstants;
@@ -19,25 +20,18 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import com.itextpdf.io.font.FontProgram;
-
 public class EmployeePerformanceReportGenerator {
 
-    public static void generateReportFiltered(String s, int userId) throws SQLException, IOException {
+    public static void generateReportFiltered(int userId) throws SQLException, IOException {
         String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
         String fileName = "Raport_Wydajności_" + timestamp + ".pdf";
 
         String userHome = System.getProperty("user.home");
         File file = new File(userHome, "Documents/" + fileName);
 
-        // Czcionka z classpath (resources/fonts/DejaVuSans.ttf)
         InputStream fontStream = EmployeePerformanceReportGenerator.class.getResourceAsStream("/fonts/DejaVuSans.ttf");
         FontProgram fontProgram = FontProgramFactory.createFont(fontStream.readAllBytes());
-        PdfFont font = PdfFontFactory.createFont(
-                fontProgram,
-                PdfEncodings.IDENTITY_H,
-                PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED
-        );
+        PdfFont font = PdfFontFactory.createFont(fontProgram, PdfEncodings.IDENTITY_H, PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED);
 
         String query = """
         SELECT
@@ -67,15 +61,20 @@ public class EmployeePerformanceReportGenerator {
 
                 if (rs.next()) {
                     document.add(new Paragraph("RAPORT WYDAJNOŚCI PRACOWNIKA")
-                            .setFontSize(20).setBold()
-                            .setTextAlignment(TextAlignment.CENTER).setMarginBottom(10));
+                            .setFontSize(20)
+                            .setBold()
+                            .setTextAlignment(TextAlignment.CENTER)
+                            .setMarginBottom(10));
 
                     document.add(new Paragraph("Wygenerowano: " + timestamp)
-                            .setFontSize(10).setItalic()
-                            .setTextAlignment(TextAlignment.CENTER).setMarginBottom(20));
+                            .setFontSize(10)
+                            .setItalic()
+                            .setTextAlignment(TextAlignment.CENTER)
+                            .setMarginBottom(20));
 
                     Table infoTable = new Table(UnitValue.createPercentArray(new float[]{1, 2}))
-                            .useAllAvailableWidth().setMarginBottom(20);
+                            .useAllAvailableWidth()
+                            .setMarginBottom(20);
 
                     String[][] rows = {
                             {"Pracownik", rs.getString("employee")},
@@ -101,16 +100,16 @@ public class EmployeePerformanceReportGenerator {
 
                     document.add(new Paragraph("Zadania ukończone:")
                             .setFontSize(12).setBold().setMarginBottom(4));
+
                     String completedTasks = rs.getString("completed_tasks_titles");
-                    document.add(new Paragraph(
-                            (completedTasks != null && !completedTasks.isBlank()) ? completedTasks : "Brak")
-                            .setFont(font).setMarginBottom(15));
+                    document.add(new Paragraph(completedTasks != null && !completedTasks.isBlank() ? completedTasks : "Brak")
+                            .setMarginBottom(15).setFont(font));
 
                     document.add(new Paragraph("Zadania oczekujące:")
                             .setFontSize(12).setBold().setMarginBottom(4));
+
                     String pendingTasks = rs.getString("pending_tasks_titles");
-                    document.add(new Paragraph(
-                            (pendingTasks != null && !pendingTasks.isBlank()) ? pendingTasks : "Brak")
+                    document.add(new Paragraph(pendingTasks != null && !pendingTasks.isBlank() ? pendingTasks : "Brak")
                             .setFont(font));
                 } else {
                     document.add(new Paragraph("Brak danych dla podanego użytkownika.").setFont(font));
