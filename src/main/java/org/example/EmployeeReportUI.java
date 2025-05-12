@@ -1,13 +1,15 @@
 package org.example;
 
 import javafx.application.Application;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.net.URL;
 import java.sql.*;
 import java.util.*;
 
@@ -17,21 +19,24 @@ public class EmployeeReportUI extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("Generowanie raportu");
+        primaryStage.setTitle("Generator raportów");
 
         Label statusLabel = new Label();
 
-        List<String> reportTypes = List.of("Raport wydajności pracownika", "Raport postępu projektu", "Raport zarządczy projektu");
         ChoiceBox<String> reportTypeBox = new ChoiceBox<>();
-        reportTypeBox.getItems().addAll(reportTypes);
-        reportTypeBox.setValue(reportTypes.get(0));
+        reportTypeBox.getItems().addAll(
+                "Raport wydajności pracownika",
+                "Raport postępu projektu",
+                "Raport zarządczy projektu"
+        );
+        reportTypeBox.setValue("Raport wydajności pracownika");
 
         TextField fileNameField = new TextField();
-        fileNameField.setPromptText("Nazwa pliku bez rozszerzenia");
+        fileNameField.setPromptText("Nazwa pliku (bez rozszerzenia)");
 
-        Button folderButton = new Button("Wybierz folder zapisu");
-        Label folderLabel = new Label(System.getProperty("user.home") + "/Documents");
         selectedDirectory = new File(System.getProperty("user.home"), "Documents");
+        Label folderLabel = new Label(selectedDirectory.getAbsolutePath());
+        Button folderButton = new Button("Wybierz folder");
 
         folderButton.setOnAction(e -> {
             DirectoryChooser chooser = new DirectoryChooser();
@@ -43,120 +48,124 @@ public class EmployeeReportUI extends Application {
             }
         });
 
-        Button continueButton = new Button("Dalej");
+        Button generateButton = new Button("Generuj raport");
 
-        continueButton.setOnAction(e -> {
+        // Styl i rozmieszczenie
+        VBox root = new VBox(15);
+        root.setPadding(new Insets(20));
+        root.getStyleClass().add("container");
+
+        root.getChildren().addAll(
+                new Label("Typ raportu:"), reportTypeBox,
+                new Label("Nazwa pliku:"), fileNameField,
+                folderButton, folderLabel,
+                generateButton, statusLabel
+        );
+
+        generateButton.setOnAction(e -> {
             String selectedType = reportTypeBox.getValue();
-            String customFileName = fileNameField.getText().trim();
-            if (customFileName.isEmpty()) {
-                customFileName = null; // użyj domyślnej nazwy
-            }
+            String fileName = fileNameField.getText().trim();
+            if (fileName.isEmpty()) fileName = null;
 
             if (selectedType.equals("Raport wydajności pracownika")) {
-                Map<String, Integer> employeeMap = new LinkedHashMap<>();
-                try (Connection conn = DatabaseConnector.getConnection();
-                     PreparedStatement stmt = conn.prepareStatement(
-                             "SELECT u.id, CONCAT(u.first_name, ' ', u.last_name) AS name " +
-                                     "FROM Users u JOIN Roles r ON u.role_id = r.id WHERE r.name = 'pracownik'");
-                     ResultSet rs = stmt.executeQuery()) {
-
-                    while (rs.next()) {
-                        String name = rs.getString("name");
-                        int id = rs.getInt("id");
-                        employeeMap.put(name, id);
-                    }
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                    statusLabel.setText("Błąd połączenia z bazą danych");
-                    return;
-                }
-
-                List<String> employeeNames = new ArrayList<>(employeeMap.keySet());
-                if (employeeNames.isEmpty()) {
-                    statusLabel.setText("Brak dostępnych pracowników.");
-                    return;
-                }
-
-                ChoiceDialog<String> dialog = new ChoiceDialog<>(employeeNames.get(0), employeeNames);
-                dialog.setTitle("Wybierz pracownika");
-                dialog.setHeaderText("Generowanie raportu wydajności");
-                dialog.setContentText("Pracownik:");
-
-                String finalCustomFileName = customFileName;
-                dialog.showAndWait().ifPresent(selectedName -> {
-                    int userId = employeeMap.get(selectedName);
-                    try {
-                        EmployeePerformanceReportGenerator.generateReportFiltered(userId, finalCustomFileName, selectedDirectory);
-                        statusLabel.setText("Wygenerowano raport dla: " + selectedName);
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                        statusLabel.setText("Błąd generowania PDF");
-                    }
-                });
+                generateEmployeeReport(fileName, selectedDirectory, statusLabel);
             } else {
-                Map<String, Integer> projectMap = new LinkedHashMap<>();
-                try (Connection conn = DatabaseConnector.getConnection();
-                     PreparedStatement stmt = conn.prepareStatement("SELECT id, name FROM Projects");
-                     ResultSet rs = stmt.executeQuery()) {
-
-                    while (rs.next()) {
-                        String name = rs.getString("name");
-                        int id = rs.getInt("id");
-                        projectMap.put(name, id);
-                    }
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                    statusLabel.setText("Błąd połączenia z bazą danych");
-                    return;
-                }
-
-                List<String> projectNames = new ArrayList<>(projectMap.keySet());
-                if (projectNames.isEmpty()) {
-                    statusLabel.setText("Brak dostępnych projektów.");
-                    return;
-                }
-
-                ChoiceDialog<String> dialog = new ChoiceDialog<>(projectNames.get(0), projectNames);
-                dialog.setTitle("Wybierz projekt");
-                dialog.setHeaderText("Generowanie raportu");
-                dialog.setContentText("Projekt:");
-
-                String finalCustomFileName1 = customFileName;
-                dialog.showAndWait().ifPresent(selectedName -> {
-                    int projectId = projectMap.get(selectedName);
-                    try {
-                        if (selectedType.equals("Raport postępu projektu")) {
-                            ProjectProgressReportGenerator.generateReport(projectId, finalCustomFileName1, selectedDirectory);
-                            statusLabel.setText("Wygenerowano raport postępu dla projektu: " + selectedName);
-                        } else {
-                            ExecutiveOverviewReportGenerator.generateReport(projectId, finalCustomFileName1, selectedDirectory);
-                            statusLabel.setText("Wygenerowano raport zarządczy dla projektu: " + selectedName);
-                        }
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                        statusLabel.setText("Błąd generowania PDF");
-                    }
-                });
+                generateProjectReport(fileName, selectedDirectory, selectedType, statusLabel);
             }
         });
 
-        VBox layout = new VBox(15);
-        layout.getChildren().addAll(
-                new Label("Wybierz typ raportu:"),
-                reportTypeBox,
-                new Label("Nazwa pliku (bez rozszerzenia):"),
-                fileNameField,
-                folderButton,
-                folderLabel,
-                continueButton,
-                statusLabel
-        );
+        Scene scene = new Scene(root, 460, 360);
+        URL cssUrl = EmployeeReportUI.class.getResource("/styles/style.css");
+        if (cssUrl != null) {
+            scene.getStylesheets().add(cssUrl.toExternalForm());
+        } else {
+            System.err.println("style.css not found in resources!");
+        }
 
-        primaryStage.setScene(new Scene(layout, 450, 300));
+        primaryStage.setScene(scene);
         primaryStage.show();
+    }
+
+    private void generateEmployeeReport(String fileName, File folder, Label statusLabel) {
+        Map<String, Integer> employeeMap = loadEmployees();
+        if (employeeMap.isEmpty()) {
+            statusLabel.setText("Brak pracowników.");
+            return;
+        }
+        showSelectionDialog("Wybierz pracownika", "Pracownik:", employeeMap, (name, id) -> {
+            try {
+                EmployeePerformanceReportGenerator.generateReportFiltered(id, fileName, folder);
+                statusLabel.setText("Wygenerowano raport dla: " + name);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                statusLabel.setText("Błąd generowania PDF");
+            }
+        });
+    }
+
+    private void generateProjectReport(String fileName, File folder, String type, Label statusLabel) {
+        Map<String, Integer> projectMap = loadProjects();
+        if (projectMap.isEmpty()) {
+            statusLabel.setText("Brak projektów.");
+            return;
+        }
+        showSelectionDialog("Wybierz projekt", "Projekt:", projectMap, (name, id) -> {
+            try {
+                if (type.equals("Raport postępu projektu")) {
+                    ProjectProgressReportGenerator.generateReport(id, fileName, folder);
+                    statusLabel.setText("✅ Wygenerowano raport postępu dla: " + name);
+                } else {
+                    ExecutiveOverviewReportGenerator.generateReport(id, fileName, folder);
+                    statusLabel.setText("✅ Wygenerowano raport zarządczy dla: " + name);
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                statusLabel.setText("❌ Błąd generowania PDF");
+            }
+        });
+    }
+
+    private Map<String, Integer> loadEmployees() {
+        Map<String, Integer> map = new LinkedHashMap<>();
+        try (Connection conn = DatabaseConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "SELECT u.id, CONCAT(u.first_name, ' ', u.last_name) AS name " +
+                             "FROM Users u JOIN Roles r ON u.role_id = r.id WHERE r.name = 'pracownik'");
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) map.put(rs.getString("name"), rs.getInt("id"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return map;
+    }
+
+    private Map<String, Integer> loadProjects() {
+        Map<String, Integer> map = new LinkedHashMap<>();
+        try (Connection conn = DatabaseConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement("SELECT id, name FROM Projects");
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) map.put(rs.getString("name"), rs.getInt("id"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return map;
+    }
+
+    private void showSelectionDialog(String title, String label, Map<String, Integer> options,
+                                     BiConsumer<String, Integer> onSelected) {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(options.keySet().iterator().next(), options.keySet());
+        dialog.setTitle(title);
+        dialog.setHeaderText(title);
+        dialog.setContentText(label);
+        dialog.showAndWait().ifPresent(name -> onSelected.accept(name, options.get(name)));
     }
 
     public static void main(String[] args) {
         launch(args);
+    }
+
+    @FunctionalInterface
+    interface BiConsumer<K, V> {
+        void accept(K k, V v);
     }
 }

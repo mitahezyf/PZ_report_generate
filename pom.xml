@@ -72,9 +72,11 @@
                 <directory>src/main/resources</directory>
                 <includes>
                     <include>**/*.ttf</include>
+                    <include>**/*.css</include>
                 </includes>
             </resource>
         </resources>
+
 
         <plugins>
             <plugin>
