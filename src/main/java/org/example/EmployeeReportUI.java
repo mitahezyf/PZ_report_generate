@@ -113,14 +113,14 @@ public class EmployeeReportUI extends Application {
             try {
                 if (type.equals("Raport postępu projektu")) {
                     ProjectProgressReportGenerator.generateReport(id, fileName, folder);
-                    statusLabel.setText("✅ Wygenerowano raport postępu dla: " + name);
+                    statusLabel.setText("Wygenerowano raport postępu dla: " + name);
                 } else {
                     ExecutiveOverviewReportGenerator.generateReport(id, fileName, folder);
-                    statusLabel.setText("✅ Wygenerowano raport zarządczy dla: " + name);
+                    statusLabel.setText("Wygenerowano raport zarządczy dla: " + name);
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
-                statusLabel.setText("❌ Błąd generowania PDF");
+                statusLabel.setText("Błąd generowania PDF");
             }
         });
     }
