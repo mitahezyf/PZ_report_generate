@@ -22,7 +22,7 @@ import java.util.Date;
 
 public class EmployeePerformanceReportGenerator {
 
-    public static void generateReportFiltered(int userId) throws SQLException, IOException {
+    public static void generateReportFiltered(int userId, String customFileName, File selectedDirectory) throws SQLException, IOException {
         String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
         String fileName = "Raport_Wydajności_" + timestamp + ".pdf";
 

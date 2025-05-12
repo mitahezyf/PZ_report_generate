@@ -23,7 +23,7 @@ import java.util.Optional;
 
 public class ExecutiveOverviewReportGenerator {
 
-    public static void generateReport(int projectId) throws SQLException, IOException {
+    public static void generateReport(int projectId, String customFileName, File selectedDirectory) throws SQLException, IOException {
         String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
         String fileName = "Raport_zarzadczy_" + timestamp + ".pdf";
 

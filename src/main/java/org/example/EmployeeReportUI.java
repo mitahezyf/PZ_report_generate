@@ -4,12 +4,16 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
+import java.io.File;
 import java.sql.*;
 import java.util.*;
 
 public class EmployeeReportUI extends Application {
+
+    private File selectedDirectory;
 
     @Override
     public void start(Stage primaryStage) {
@@ -22,10 +26,32 @@ public class EmployeeReportUI extends Application {
         reportTypeBox.getItems().addAll(reportTypes);
         reportTypeBox.setValue(reportTypes.get(0));
 
+        TextField fileNameField = new TextField();
+        fileNameField.setPromptText("Nazwa pliku bez rozszerzenia");
+
+        Button folderButton = new Button("Wybierz folder zapisu");
+        Label folderLabel = new Label(System.getProperty("user.home") + "/Documents");
+        selectedDirectory = new File(System.getProperty("user.home"), "Documents");
+
+        folderButton.setOnAction(e -> {
+            DirectoryChooser chooser = new DirectoryChooser();
+            chooser.setTitle("Wybierz folder zapisu");
+            File chosen = chooser.showDialog(primaryStage);
+            if (chosen != null) {
+                selectedDirectory = chosen;
+                folderLabel.setText(chosen.getAbsolutePath());
+            }
+        });
+
         Button continueButton = new Button("Dalej");
 
         continueButton.setOnAction(e -> {
             String selectedType = reportTypeBox.getValue();
+            String customFileName = fileNameField.getText().trim();
+            if (customFileName.isEmpty()) {
+                customFileName = null; // użyj domyślnej nazwy
+            }
+
             if (selectedType.equals("Raport wydajności pracownika")) {
                 Map<String, Integer> employeeMap = new LinkedHashMap<>();
                 try (Connection conn = DatabaseConnector.getConnection();
@@ -56,10 +82,11 @@ public class EmployeeReportUI extends Application {
                 dialog.setHeaderText("Generowanie raportu wydajności");
                 dialog.setContentText("Pracownik:");
 
+                String finalCustomFileName = customFileName;
                 dialog.showAndWait().ifPresent(selectedName -> {
                     int userId = employeeMap.get(selectedName);
                     try {
-                        EmployeePerformanceReportGenerator.generateReportFiltered(userId);
+                        EmployeePerformanceReportGenerator.generateReportFiltered(userId, finalCustomFileName, selectedDirectory);
                         statusLabel.setText("Wygenerowano raport dla: " + selectedName);
                     } catch (Exception ex) {
                         ex.printStackTrace();
@@ -94,14 +121,15 @@ public class EmployeeReportUI extends Application {
                 dialog.setHeaderText("Generowanie raportu");
                 dialog.setContentText("Projekt:");
 
+                String finalCustomFileName1 = customFileName;
                 dialog.showAndWait().ifPresent(selectedName -> {
                     int projectId = projectMap.get(selectedName);
                     try {
                         if (selectedType.equals("Raport postępu projektu")) {
-                            ProjectProgressReportGenerator.generateReport(projectId);
+                            ProjectProgressReportGenerator.generateReport(projectId, finalCustomFileName1, selectedDirectory);
                             statusLabel.setText("Wygenerowano raport postępu dla projektu: " + selectedName);
                         } else {
-                            ExecutiveOverviewReportGenerator.generateReport(projectId);
+                            ExecutiveOverviewReportGenerator.generateReport(projectId, finalCustomFileName1, selectedDirectory);
                             statusLabel.setText("Wygenerowano raport zarządczy dla projektu: " + selectedName);
                         }
                     } catch (Exception ex) {
@@ -113,9 +141,18 @@ public class EmployeeReportUI extends Application {
         });
 
         VBox layout = new VBox(15);
-        layout.getChildren().addAll(new Label("Wybierz typ raportu:"), reportTypeBox, continueButton, statusLabel);
+        layout.getChildren().addAll(
+                new Label("Wybierz typ raportu:"),
+                reportTypeBox,
+                new Label("Nazwa pliku (bez rozszerzenia):"),
+                fileNameField,
+                folderButton,
+                folderLabel,
+                continueButton,
+                statusLabel
+        );
 
-        primaryStage.setScene(new Scene(layout, 400, 200));
+        primaryStage.setScene(new Scene(layout, 450, 300));
         primaryStage.show();
     }
 
