@@ -123,12 +123,21 @@ public class ProjectProgressReportGenerator {
                     if (rs.next()) {
                         hasData = true;
 
+                        // Add a page break before each project (except the first one)
+                        if (i > 0) {
+                            document.add(new AreaBreak());
+                        }
+
+                        // Create a Div to keep all project content together
+                        Div projectDiv = new Div();
+                        projectDiv.setKeepTogether(true);
+
                         // Add project header if multiple projects
                         if (projectIds.size() > 1) {
-                            document.add(new Paragraph("Projekt: " + rs.getString("project"))
+                            projectDiv.add(new Paragraph("Projekt: " + rs.getString("project"))
                                     .setFontSize(16)
                                     .setBold()
-                                    .setMarginTop(i > 0 ? 30 : 0)
+                                    .setMarginTop(0)
                                     .setMarginBottom(10));
                         }
 
@@ -161,23 +170,30 @@ public class ProjectProgressReportGenerator {
                             infoTable.addCell(value);
                         }
 
-                        document.add(infoTable);
+                        projectDiv.add(infoTable);
 
-                        document.add(new Paragraph("Kamienie milowe:")
+                        projectDiv.add(new Paragraph("Kamienie milowe:")
                                 .setFontSize(12).setBold().setMarginBottom(4));
-                        document.add(new Paragraph(Optional.ofNullable(rs.getString("milestone_names")).orElse("Brak"))
+                        projectDiv.add(new Paragraph(Optional.ofNullable(rs.getString("milestone_names")).orElse("Brak"))
                                 .setFont(font).setMarginBottom(15));
 
-                        document.add(new Paragraph("Zadania w projekcie:")
+                        projectDiv.add(new Paragraph("Zadania w projekcie:")
                                 .setFontSize(12).setBold().setMarginBottom(4));
-                        document.add(new Paragraph(Optional.ofNullable(rs.getString("task_titles")).orElse("Brak"))
+                        projectDiv.add(new Paragraph(Optional.ofNullable(rs.getString("task_titles")).orElse("Brak"))
                                 .setFont(font));
+
+                        // Add the complete project div to the document
+                        document.add(projectDiv);
                     }
                 }
             }
 
             if (!hasData) {
-                document.add(new Paragraph("Brak danych dla wybranych projektów.").setFont(font));
+                // Create a Div to keep the message together
+                Div messageDiv = new Div();
+                messageDiv.setKeepTogether(true);
+                messageDiv.add(new Paragraph("Brak danych dla wybranych projektów.").setFont(font));
+                document.add(messageDiv);
             }
         }
 

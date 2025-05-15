@@ -117,12 +117,21 @@ public class EmployeePerformanceReportGenerator {
                     if (rs.next()) {
                         hasData = true;
 
+                        // Add a page break before each employee (except the first one)
+                        if (i > 0) {
+                            document.add(new AreaBreak());
+                        }
+
+                        // Create a Div to keep all employee content together
+                        Div employeeDiv = new Div();
+                        employeeDiv.setKeepTogether(true);
+
                         // Add employee header if multiple employees
                         if (userIds.size() > 1) {
-                            document.add(new Paragraph("Pracownik: " + rs.getString("employee"))
+                            employeeDiv.add(new Paragraph("Pracownik: " + rs.getString("employee"))
                                     .setFontSize(16)
                                     .setBold()
-                                    .setMarginTop(i > 0 ? 30 : 0)
+                                    .setMarginTop(0)
                                     .setMarginBottom(10));
                         }
 
@@ -151,29 +160,36 @@ public class EmployeePerformanceReportGenerator {
                             infoTable.addCell(value);
                         }
 
-                        document.add(infoTable);
+                        employeeDiv.add(infoTable);
 
                         // Add completed tasks section
-                        document.add(new Paragraph("Zadania ukończone:")
+                        employeeDiv.add(new Paragraph("Zadania ukończone:")
                                 .setFontSize(12).setBold().setMarginBottom(4));
 
                         String completedTasks = rs.getString("completed_tasks_titles");
-                        document.add(new Paragraph(completedTasks != null && !completedTasks.isBlank() ? completedTasks : "Brak")
+                        employeeDiv.add(new Paragraph(completedTasks != null && !completedTasks.isBlank() ? completedTasks : "Brak")
                                 .setMarginBottom(15).setFont(font));
 
                         // Add pending tasks section
-                        document.add(new Paragraph("Zadania oczekujące:")
+                        employeeDiv.add(new Paragraph("Zadania oczekujące:")
                                 .setFontSize(12).setBold().setMarginBottom(4));
 
                         String pendingTasks = rs.getString("pending_tasks_titles");
-                        document.add(new Paragraph(pendingTasks != null && !pendingTasks.isBlank() ? pendingTasks : "Brak")
+                        employeeDiv.add(new Paragraph(pendingTasks != null && !pendingTasks.isBlank() ? pendingTasks : "Brak")
                                 .setFont(font));
+
+                        // Add the complete employee div to the document
+                        document.add(employeeDiv);
                     }
                 }
             }
 
             if (!hasData) {
-                document.add(new Paragraph("Brak danych dla wybranych użytkowników.").setFont(font));
+                // Create a Div to keep the message together
+                Div messageDiv = new Div();
+                messageDiv.setKeepTogether(true);
+                messageDiv.add(new Paragraph("Brak danych dla wybranych użytkowników.").setFont(font));
+                document.add(messageDiv);
             }
         }
 

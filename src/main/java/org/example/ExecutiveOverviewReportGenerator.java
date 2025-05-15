@@ -320,7 +320,12 @@ public class ExecutiveOverviewReportGenerator {
                 if (font != null) {
                     document.setFont(font);
                 }
-                document.add(new Paragraph("Brak danych dla wybranego projektu."));
+
+                // Create a Div to keep the message together
+                Div messageDiv = new Div();
+                messageDiv.setKeepTogether(true);
+                messageDiv.add(new Paragraph("Brak danych dla wybranego projektu."));
+                document.add(messageDiv);
             }
             System.out.println("Raport zapisany jako: " + file.getAbsolutePath());
             return;
@@ -335,6 +340,7 @@ public class ExecutiveOverviewReportGenerator {
                 document.setFont(font);
             }
 
+            // Add title and timestamp outside the keepTogether div
             document.add(new Paragraph("RAPORT ZARZĄDCZY PROJEKTU")
                     .setFontSize(20).setBold()
                     .setTextAlignment(TextAlignment.CENTER).setMarginBottom(10));
@@ -342,6 +348,10 @@ public class ExecutiveOverviewReportGenerator {
             document.add(new Paragraph("Wygenerowano: " + timestamp)
                     .setFontSize(10).setItalic()
                     .setTextAlignment(TextAlignment.CENTER).setMarginBottom(20));
+
+            // Create a Div to keep all report content together
+            Div reportDiv = new Div();
+            reportDiv.setKeepTogether(true);
 
             Table infoTable = new Table(UnitValue.createPercentArray(new float[]{1, 2}))
                     .useAllAvailableWidth().setMarginBottom(20);
@@ -377,11 +387,14 @@ public class ExecutiveOverviewReportGenerator {
                 infoTable.addCell(value);
             }
 
-            document.add(infoTable);
+            reportDiv.add(infoTable);
 
-            document.add(new Paragraph("Zadania w projekcie:")
+            reportDiv.add(new Paragraph("Zadania w projekcie:")
                     .setFontSize(12).setBold().setMarginBottom(4));
-            document.add(new Paragraph(projectData.getTaskTitles()));
+            reportDiv.add(new Paragraph(projectData.getTaskTitles()));
+
+            // Add the complete report div to the document
+            document.add(reportDiv);
         }
 
         System.out.println("Raport zapisany jako: " + file.getAbsolutePath());
